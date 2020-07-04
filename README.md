@@ -1,2 +1,2 @@
-# chess
-implementations of chess in several languages
+# ♙ chess ♟︎
+chess implementations in several languages
