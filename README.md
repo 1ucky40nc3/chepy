@@ -6,5 +6,4 @@ _/ ___\|  |  \_/ __ \ /  ___//  ___/
  \___  >___|  /\___  >____  >____  >
      \/     \/     \/     \/     \/ 
 ```
-
-♟︎ chess implementations in several languages
+chess implementations in several languages
