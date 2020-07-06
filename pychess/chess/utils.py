@@ -12,17 +12,16 @@ class Board:
     Object oriented representation of a chess board.
     """
     def __init__(self):
+        self.status = "ongoing"
         self.player = "white"
 
         self.board = self.init_board()
         self.update_attacked_squares()
 
-        self.status = "ongoing"
-
     def init_board(self):
         """
         Initializes an object oriented representation of a chess board.
-        The chess board is build with the position 'a8' at the coordinate (0, 0).
+        The chess board is build with the position 'a8' at the coordinate (0, 0) (h1 --> (7, 7)).
         This is meant simplify the drawing process of the pieces.
         Pay attention to the fact that the coordinates have to be translated.
 
@@ -56,6 +55,7 @@ class Board:
 
         target_cord -- specified coordinate of a square on the chess board the source (content of source_cord square) shall be moved to
         """
+        # TODO: find stalemate
         if target_cord is None:
             target_cord = source_cord
 
@@ -66,15 +66,20 @@ class Board:
         target = self.board[target_y][target_x]
 
         if isinstance(source, Piece):
-            source_moves, target_moves = self.get_piece_moves(
+            if source.membership() != self.player:
+                print("The specified square is not in the current player's possesion!")
+                return self.status
+
+            source_moves, companion_moves = self.get_piece_moves(
                 source, 
                 source_cord)
-            if target_cord in source_moves or target_moves:
-                if target_moves:
-                    x, y = target_moves[0]
-                    target.set_cord((x, y))
-                    self.board[y][x] = target
-                    self.board[target_y][target_x] = Empty((target_x, target_y))
+            if target_cord in source_moves or companion_moves:
+                if companion_moves:
+                    companion, (x, y) = companion_moves[0]
+                    companion_x, companion_y = companion.get_cord()
+                    companion.set_cord((x, y))
+                    self.board[y][x] = companion
+                    self.board[companion_y][companion_x] = Empty((companion_x, companion_y))
 
                     x, y = (x - 1, y) if (x - 1, y) in source_moves else (x + 1, y)
                     source.set_cord((x, y))
@@ -104,13 +109,13 @@ class Board:
                 print("Source moves:", source_moves)
             else:
                 print("Source:", str(source), "  Target:", str(target))
-                print("Source moves:", source_moves, "\nTarget moves:", target_moves)
+                print("Source moves:", source_moves, "\nCompanion moves:", companion_moves)
                 print()
 
             if target_cord == source_cord:
                 self.print(squares=source_moves)
-        else:
-            self.print()
+            else:
+                self.print()
         
         return self.status
 
@@ -159,14 +164,15 @@ class Board:
 
                 square = board[y][x]
                 if isinstance(square, Piece):
-                    if (isinstance(piece, Pawn) or 
+                    if (isinstance(piece, Pawn) or
                         square.membership() == piece.membership()):
                         break
 
                     check = False
-                    if isinstance(piece, King):
-                        status = "check"
+                    if isinstance(square, King):
+                        self.status = "check"
                         check = True
+                        loop = False
     
                     if (not check and
                         (isinstance(piece, Bishop) or
@@ -189,7 +195,6 @@ class Board:
                                         break 
 
                 valid_piece_moves.append((x, y))
-                loop = False
                 
                 if (isinstance(piece, Pawn) or
                     isinstance(piece, Knight) or
@@ -269,12 +274,14 @@ class Board:
         # last turn the enemy player checked the king
         # therefore the player has to save the king
         if (self.status == "check" and
+            piece.membership() == self.player and
             isinstance(piece, Piece)):
             if isinstance(piece, King):
                 tmp_valid_piece_moves = []
                 for move in valid_piece_moves:
+
                     x, y = move
-                    if not [y][x].is_attacked():
+                    if not board[y][x].is_attacked():
                         tmp_valid_piece_moves.append(move)
                 
                 valid_piece_moves = tmp_valid_piece_moves
@@ -458,30 +465,40 @@ class Board:
         y = cord[1]
 
         x = ord(x) - ord("a")
-        y = int(y) - 1
+        y = abs(int(y) - 8)
 
         return x, y
 
-    def print(self, squares=None):
+    def print(self, squares=None, show_attacked=False):
         """
         Print the current board.
 
         Keyword arguments:
 
         squares -- list of squares on the chess board that shall be marked with this character '⛝' (to indicate that they are attacked)
+        show_attacked -- boolean that states if all attacked squares shall be marked
         """
+
         if squares is None:
-            for row in self.board:
-                print(["{}{}".format(str(square), "x" if square.is_attacked() else "") for square in row])
-        else:
+            squares = []
+
+        attacked = []
+        if show_attacked:
             for y, row in enumerate(self.board):
-                line = []
                 for x, square in enumerate(row):
-                    if (x, y) in squares:
-                        line.append("⛝")
-                    else:
-                        line.append(str(square))
-                print(line)
+                    if square.is_attacked():
+                        attacked.append((x, y))
+
+        for y, row in enumerate(self.board):
+            line = []
+            for x, square in enumerate(row):
+                if (x, y) in squares:
+                    line.append("⛝")
+                elif (x, y) in attacked:
+                    line.append("%")
+                else:
+                    line.append(str(square))
+            print(line)
         print()
 
 class Boundary:
