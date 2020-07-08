@@ -49,15 +49,21 @@ class Board:
 
         Argument:
 
-        source_cord -- specified coordinate of a piece on the chess board that shall be examined or moved
+        source_cord -- specified coordinate of a piece on the chess board that shall be examined or moved (either internal coordinate or chess representation e.g. '(0, 0)' or "a8")
 
         Keyword argument:
 
         target_cord -- specified coordinate of a square on the chess board the source (content of source_cord square) shall be moved to
         """
+        if type(source_cord) is str:
+            source_cord = self.translate_cord(source_cord)
+
         # TODO: find stalemate
         if target_cord is None:
             target_cord = source_cord
+
+        if type(target_cord) is str:
+            target_cord = self.translate_cord(target_cord)
 
         source_x, source_y = source_cord
         target_x, target_y = target_cord
@@ -74,6 +80,14 @@ class Board:
                 source, 
                 source_cord)
             if target_cord in source_moves or companion_moves:
+                if self.status == "check":
+                    moves = self.get_player_moves()
+                    if any(moves):
+                        self.status = "ongoing"
+                    else:
+                        self.status = "checkmate"
+                        return self.status
+
                 if companion_moves:
                     companion, (x, y) = companion_moves[0]
                     companion_x, companion_y = companion.get_cord()
@@ -97,13 +111,6 @@ class Board:
                 self.next_turn()
                 self.update_attacked_squares()
 
-                if self.status == "check":
-                    moves = self.get_player_moves()
-                    if any(moves):
-                        self.status = "ongoing"
-                    else:
-                        self.status = "checkmate"
-
             if target == source:
                 print("Source:", str(source))
                 print("Source moves:", source_moves)
@@ -122,6 +129,7 @@ class Board:
     def get_piece_moves(self, 
                         piece, 
                         piece_cord,
+                        attacking=False,
                         board=None):
         """
         Find all valid moves of a chess piece.
@@ -168,6 +176,9 @@ class Board:
                         square.membership() == piece.membership()):
                         break
 
+                    if square.membership() != piece.membership():
+                        loop = False
+
                     check = False
                     if isinstance(square, King):
                         self.status = "check"
@@ -204,6 +215,8 @@ class Board:
         # check if piece is pawn
         # and can execute it's unique movement
         if isinstance(piece, Pawn):
+            attacking_moves = []
+
             moves = piece.get_attack_moves()
             for move in moves:
                 dx, dy = move
@@ -217,16 +230,30 @@ class Board:
                     y += dy
 
                     square = board[y][x]
-                    if isinstance(square, Piece):
+                    if (not attacking and
+                        isinstance(square, Piece)):
                         if square.membership() != piece.membership():
-                            valid_piece_moves.append((x, y))
+                            attacking_moves.append((x, y))
 
-            if piece.can_special():
-                dx, dy = piece.get_special_move()
-                if piece.membership() == "white":
-                    dy = - dy
+                    elif attacking:
+                        if isinstance(square, Piece):
+                            if square.membership() != piece.membership():
+                                attacking_moves.append((x, y))
+                        else:
+                            attacking_moves.append((x, y))                        
 
-                valid_piece_moves.append((piece_x + dx, piece_y + dy))
+            if attacking:
+                valid_piece_moves = attacking_moves
+            else:
+                for move in attacking_moves:
+                    valid_piece_moves.append(move)
+
+                if piece.can_special():
+                    dx, dy = piece.get_special_move()
+                    if piece.membership() == "white":
+                        dy = - dy
+
+                    valid_piece_moves.append((piece_x + dx, piece_y + dy))
         
         # check if piece is pinned
         # and can move in the direction of the attacker
@@ -278,8 +305,8 @@ class Board:
             isinstance(piece, Piece)):
             if isinstance(piece, King):
                 tmp_valid_piece_moves = []
+                
                 for move in valid_piece_moves:
-
                     x, y = move
                     if not board[y][x].is_attacked():
                         tmp_valid_piece_moves.append(move)
@@ -341,7 +368,7 @@ class Board:
 
         return valid_piece_moves, valid_companion_moves
     
-    def get_player_moves(self, player=None, board=None, with_pieces=False):
+    def get_player_moves(self, player=None, board=None, attacking=False, with_pieces=False):
         """
         Find all valid moves of a player's chess pieces.
 
@@ -365,7 +392,9 @@ class Board:
         
         moves = []
         for piece in pieces:
-            piece_moves = self.get_piece_moves(piece, piece.get_cord())
+            piece_moves = self.get_piece_moves(
+                piece, piece.get_cord(), attacking=attacking)
+
             for move in piece_moves[0]:
                 moves.append(move)
         
@@ -387,13 +416,15 @@ class Board:
 
         attacked_squares -- list of the attacked squares
         """
+        # TODO: exclude pawn special and normal and exchange for attack move
         if board is None:
             board = self.board
 
         enemy_player = "white" if self.player == "black" else "black"
         attacked_squares = self.get_player_moves(
             player=enemy_player, 
-            board=board, 
+            board=board,
+            attacking=True, 
             with_pieces=with_attackers)
 
         return attacked_squares
