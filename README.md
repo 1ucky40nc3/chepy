@@ -6,4 +6,4 @@ _/ ___\|  |  \_/ __ \\____ <   |  |
  \___  >___|  /\___  >   __// ____|
      \/     \/     \/|__|   \/ 
 ```
-chess implementation in python
+a chess implementation in python
