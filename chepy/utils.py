@@ -79,7 +79,7 @@ class Board:
             source_moves, companion_moves = self.get_piece_moves(
                 source, 
                 source_cord)
-            if target_cord in source_moves or companion_moves:
+            if target_cord in source_moves:
                 if self.status == "check":
                     moves = self.get_player_moves()
                     if any(moves):
@@ -141,6 +141,7 @@ class Board:
 
         Keyword arguments:
 
+        attacking -- states that all moves are valid for attacking (default False)
         board -- the board which has the position that shall be explored (default None --> the current board)
 
         Returns:
@@ -343,6 +344,7 @@ class Board:
 
         # check if the player can castle
         if (self.status != "check" and
+            not attacking and
             isinstance(piece, King)):
             if not piece.has_moved():
                 for step in range(-1, 2, 2):
@@ -350,17 +352,18 @@ class Board:
                     companion_y = piece_y
                     companion = board[companion_y][companion_x]
 
-                    if (isinstance(companion, Rook) or
+                    if (isinstance(companion, Rook) and
                         not companion.has_moved()):
 
                         empty = True
 
                         start = 5 if step == 1 else 1
                         stop = 7 if step == 1 else 4
-                        for x in range(start, stop, step):
+                        for x in range(start, stop):
                             square = board[piece_y][x]
                             if isinstance(square, Piece) or square.is_attacked():
                                 empty = False
+                                break
 
                         if empty:
                             valid_piece_moves.append((piece_x + step * 2, piece_y))                            
