@@ -82,13 +82,17 @@ class Board:
                 source, 
                 source_cord)
             if target_cord in source_moves:
+                
+                player_moves = self.get_player_moves()
                 if self.status == "check":
-                    print("check status")
-                    moves = self.get_player_moves()
-                    if any(moves):
+                    if any(player_moves):
                         self.status = "ongoing"
                     else:
                         self.status = "checkmate"
+                        return self.status
+                else:
+                    if not any(player_moves):
+                        self.status = "stalemate"
                         return self.status
 
                 if companion_moves:
