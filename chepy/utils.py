@@ -44,7 +44,7 @@ class Board:
         
         return board
 
-    def __call__(self, source_cord, target_cord=None):
+    def __call__(self, source_cord, target_cord=None, target_request=None):
         """
         Request current board status and print position.
         Excecute a turn (if target_cord is not None).
@@ -82,7 +82,7 @@ class Board:
                 source, 
                 source_cord)
             if target_cord in source_moves:
-                
+
                 player_moves = self.get_player_moves()
                 if self.status == "check":
                     if any(player_moves):
@@ -107,8 +107,15 @@ class Board:
                     self.board[y][x] = source
                     self.board[source_y][source_x] = Empty((source_x, source_y))
                 else:
-                    source.set_cord(target_cord)
-                    self.board[target_y][target_x] = source
+                    if (target_request is not None and
+                        isinstance(source, Pawn) and
+                        (target_y == 0 or target_y == 7)):
+                        self.board[target_y][target_x] = self.get_target_request(
+                            target_request, target_cord)
+                    else:
+                        source.set_cord(target_cord)
+                        self.board[target_y][target_x] = source
+
                     self.board[source_y][source_x] = Empty((source_x, source_y))
                 
                 if (isinstance(source, Rook) or
@@ -484,6 +491,24 @@ class Board:
         for square in attacked_squares:
             x, y = square
             self.board[y][x].set_attacked(True)
+    
+    def get_target_request(self, target_request, target_cord):
+        """
+        Get the piece that is requested when a pawn reaches the enemy's baseline.
+
+        Arguments:
+        
+        target_request -- String that represents the requested piece ("queen", "rook", "bishop", "knight")
+        target_cord -- position of the target on the chess board
+        """
+        if target_request == "queen":
+            return Queen(target_cord, self.player)
+        elif target_request == "rook":
+            return Rook(target_cord, self.player)
+        elif target_request == "bishop":
+            return Bishop(target_cord, self.player)
+        elif target_request == "knight":
+            return Knight(target_cord, self.player)
 
     def next_turn(self):
         """
