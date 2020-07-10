@@ -7,6 +7,8 @@ from .entity import Rook
 from .entity import Queen
 from .entity import King
 
+import copy
+
 class Board:
     """
     Object oriented representation of a chess board.
@@ -81,6 +83,7 @@ class Board:
                 source_cord)
             if target_cord in source_moves:
                 if self.status == "check":
+                    print("check status")
                     moves = self.get_player_moves()
                     if any(moves):
                         self.status = "ongoing"
@@ -202,7 +205,7 @@ class Board:
                                     break
                                 else:    
                                     if isinstance(tmp_square, King):
-                                        square.set_pinned(True, pinner=piece)
+                                        square.set_pinned(True, attacker=piece)
                                     else:
                                         break 
 
@@ -316,30 +319,32 @@ class Board:
             else:
                 king = None
                 pieces = self.get_player_pieces()
-                for piece in pieces:
-                    if isinstance(piece, King):
-                        king = piece
+                for _piece in pieces:
+                    if isinstance(_piece, King):
+                        king = _piece
                         break
                 
                 king_cord = king.get_cord()
 
                 tmp_valid_piece_moves = []
+
+                self.status = "ongoing"
                 attacked_squares = self.get_attacked_squares(with_attackers=True)
 
                 for move in valid_piece_moves:
                     if move in attacked_squares:
-                        tmp_board = board
+                        tmp_board = copy.deepcopy(board)
                         x, y = move
 
-                        board[y][x] = piece
-                        board[y][x] = Empty((piece_x, piece_y))
+                        tmp_board[y][x] = piece
+                        tmp_board[piece_y][piece_x] = Empty((piece_x, piece_y))
 
                         tmp_attacked_squares = self.get_attacked_squares(board=tmp_board)
+
                         if king_cord not in tmp_attacked_squares:
                             tmp_valid_piece_moves.append(move)
-                         
-                        board = tmp_board
-                
+
+                self.status = "check"
                 valid_piece_moves = tmp_valid_piece_moves
 
         # check if the player can castle
@@ -370,7 +375,36 @@ class Board:
                             valid_companion_moves.append((companion, (piece_x + -step, piece_y)))
 
         return valid_piece_moves, valid_companion_moves
-    
+
+    def get_player_pieces(self, player=None, board=None):
+        """
+        Find a player's pieces.
+
+        Keyword arguments:
+
+        player -- the player whose pieces shall be seeked (default None --> the current player)
+        board -- the board which has the position that shall be explored (default None --> the current board)
+
+        Returns:
+
+        player_pieces -- list of the pieces of the specified player
+        """
+        if player is None:
+            player = self.player
+
+        if board is None:
+            board = self.board
+
+        player_pieces = []
+
+        for row in board:
+            for square in row:
+                if isinstance(square, Piece):
+                    if square.membership() == player:
+                        player_pieces.append(square)
+        
+        return player_pieces
+
     def get_player_moves(self, player=None, board=None, attacking=False, with_pieces=False):
         """
         Find all valid moves of a player's chess pieces.
@@ -396,7 +430,7 @@ class Board:
         moves = []
         for piece in pieces:
             piece_moves = self.get_piece_moves(
-                piece, piece.get_cord(), attacking=attacking)
+                piece, piece.get_cord(), board=board, attacking=attacking)
 
             for move in piece_moves[0]:
                 moves.append(move)
@@ -419,7 +453,7 @@ class Board:
 
         attacked_squares -- list of the attacked squares
         """
-        # TODO: exclude pawn special and normal and exchange for attack move
+
         if board is None:
             board = self.board
 
@@ -452,35 +486,6 @@ class Board:
         Change the player the indicate the next turn.
         """
         self.player = "white" if self.player == "black" else "black"
-    
-    def get_player_pieces(self, player=None, board=None):
-        """
-        Find a player's pieces.
-
-        Keyword arguments:
-
-        player -- the player whose pieces shall be seeked (default None --> the current player)
-        board -- the board which has the position that shall be explored (default None --> the current board)
-
-        Returns:
-
-        player_pieces -- list of the pieces of the specified player
-        """
-        if player is None:
-            player = self.player
-
-        if board is None:
-            board = self.board
-
-        player_pieces = []
-
-        for row in board:
-            for square in row:
-                if isinstance(square, Piece):
-                    if square.membership() == player:
-                        player_pieces.append(square)
-        
-        return player_pieces
     
     def translate_cord(self, cord):
         """

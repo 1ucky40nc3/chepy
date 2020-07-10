@@ -4,9 +4,6 @@ board = Board()
 
 board.print(show_attacked=True)
 
-king_cord = "e1"
-board(king_cord)
-
 # translate a chess coordinate
 # to the internal representation
 pawn_cord = "c2"
@@ -41,9 +38,7 @@ board(queen_cord)
 move_cord = "a4"
 board(queen_cord, move_cord)
 
-# list all of blacks moves
-board.get_player_moves()
-
+board.print()
 board.print(squares=board.get_attacked_squares())
 
 # check if the king can move
@@ -57,3 +52,7 @@ board(queen_cord)
 # check if the king can move
 bishop_cord = "c8"
 board(bishop_cord)
+
+# check if the knight can move
+knight_cord = "b8"
+board(knight_cord)
